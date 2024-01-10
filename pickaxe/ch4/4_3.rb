@@ -104,3 +104,110 @@ loop do
 end
 
 # Enumerator도 객체다
+## each_with_index
+result = []
+['a', 'b', 'c'].each_with_index { |item, index| result << [item, index] }
+p result #=> [["a", 0], ["b", 1], ["c", 2]]
+
+## char with index
+result = []
+"cat".each_char.each_with_index { |item, index| result << [item, index] }
+p result #=> [["c", 0], ["a", 1], ["t", 2]]
+
+## with_index
+result = []
+"cat".each_char.with_index { |item, index| result << [item, index] }
+p result #=> [["c", 0], ["a", 1], ["t", 2]]
+
+## enum 명시적 생성
+enum = "cat".enum_for(:each_char)
+p enum.to_a #=> ["c", "a", "t"]
+
+enum_in_threes = (1..10).enum_for(:each_slice, 3)
+p enum_in_threes.to_a #=> [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10]]
+
+# Generator, Filter로서의 Enumerator
+triangular_numbers = Enumerator.new do |yielder|
+  number = 0
+  count = 1
+  loop do
+    number += count
+    count += 1
+    yielder.yield number
+  end
+end
+5.times { print triangular_numbers.next, " " }
+puts
+
+p triangular_numbers.first(5) #=> [1, 3, 6, 10, 15]
+
+def infinite_select(enum, &block)
+  Enumerator.new do |yielder|
+    enum.each do |value|
+      yielder.yield(value) if block.call(value)
+    end
+  end
+end
+
+p infinite_select(triangular_numbers) { |val| val % 10 == 0 }.first(5) #=> [10, 120, 190, 210, 300]
+
+class Enumerator
+  def infinite_select(&block)
+    Enumerator.new do |yielder|
+      each do |value|
+        yielder.yield(value) if block.call(value)
+      end
+    end
+  end
+end
+
+p triangular_numbers
+  .infinite_select { |val| val % 10 == 0 }
+  .infinite_select { |val| val.to_s =~ /3/ }
+  .first(10)
+
+# lazy enumerator
+def Integer.all
+  Enumerator.new do |yielder, n: 0|
+    loop { yielder.yield(n += 1) }
+  end.lazy
+end
+
+p Integer.all.first(10) #=> [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+p Integer
+  .all
+  .select { |i| (i % 3).zero? }
+  .first(10) #=> [3, 6, 9, 12, 15, 18, 21, 24, 27, 30]
+
+def palindrome?(n)
+  n = n.to_s
+  n == n.reverse
+end
+
+p Integer
+  .all
+  .select { |i| (i % 3).zero? }
+  .select { |i| palindrome?(i) }
+  .first(10)
+
+multiple_of_three = Integer
+                    .all
+                    .select { |i| (i % 3).zero? }
+
+p multiple_of_three.first(10) #=> [3, 6, 9, 12, 15, 18, 21, 24, 27, 30]
+
+m3_palindromes = multiple_of_three
+                 .select { |i| palindrome?(i) }
+p m3_palindromes.first(10) #=> [3, 6, 9, 33, 36, 39, 63, 66, 69, 93]
+
+multiple_of_three = -> n { (n % 3).zero? }
+palindrome = -> n { n = n.to_s; n == n.reverse }
+
+p Integer
+  .all
+  .select(&multiple_of_three)
+  .select(&palindrome)
+  .first(10)
+
+# 트랜젝션을 위한 블록
+
