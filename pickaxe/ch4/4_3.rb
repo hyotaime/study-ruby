@@ -200,8 +200,8 @@ m3_palindromes = multiple_of_three
                  .select { |i| palindrome?(i) }
 p m3_palindromes.first(10) #=> [3, 6, 9, 33, 36, 39, 63, 66, 69, 93]
 
-multiple_of_three = -> n { (n % 3).zero? }
-palindrome = -> n { n = n.to_s; n == n.reverse }
+multiple_of_three = ->(n) { (n % 3).zero? }
+palindrome = ->(n) { n = n.to_s; n == n.reverse }
 
 p Integer
   .all
@@ -210,4 +210,114 @@ p Integer
   .first(10)
 
 # 트랜젝션을 위한 블록
+# class File
+#   def self.open_and_process(*args)
+#     f = File.open(*args)
+#     yield f
+#     f.close()
+#   end
+# end
+#
+# File.open_and_process('testfile', 'r') do |file|
+#   while line = file.gets
+#     puts line
+#   end
+# end
+#
+# # 블록을 받는 메서드 정의하기
+# class File
+#   def self.my_open(*args)
+#     result = file = new(*args)
+#     if block_given?
+#       result = yield file
+#       file.close
+#     end
+#     result
+#   end
+# end
 
+# 객체로서의 블록
+class ProcExample
+  def pass_in_block(&action)
+    @stored_proc = action
+  end
+  def use_proc(parameter)
+    @stored_proc.call(parameter)
+  end
+end
+
+eg = ProcExample.new
+eg.pass_in_block { |param| puts "The parameter is #{param}" }
+eg.use_proc(99)
+
+def create_block_object(&block)
+  block
+end
+
+bo = create_block_object { |param| puts "You called me with #{param}" }
+bo.call 99
+bo.call 'cat'
+
+# 블록은 클로저이기도 하다.
+def n_times(thing)
+  lambda { |n| thing * n }
+  # ->(n) { thing * n }
+end
+
+p1 = n_times(23)
+p p1.call(3) #=> 69
+p p1.call(4) #=> 92
+p2 = n_times('Hello ')
+p p2.call(3) #=> "Hello Hello Hello "
+
+def power_proc_generator
+  value = 1
+  lambda { value += value }
+end
+
+power_proc = power_proc_generator
+puts power_proc.call #=> 2
+puts power_proc.call #=> 4
+puts power_proc.call #=> 8
+
+# 대체 문법
+# lambda { |params| block }
+# ->(params) { block }
+proc1 = -> arg { puts "In proc1 with #{arg}" }
+proc2 = -> arg1, arg2 { puts "In proc2 with #{arg1} and #{arg2}" }
+proc3 = ->(arg1, arg2) { puts "In proc3 with #{arg1} and #{arg2}" }
+
+proc1.call 'ant'
+proc2.call 'bee', 'cat'
+proc3.call 'dog', 'elk'
+
+def my_if(condition, then_clause, else_clause)
+  if condition
+    then_clause.call
+  else
+    else_clause.call
+  end
+end
+
+5.times do |val|
+  my_if val < 2,
+        -> { puts "#{val} is small" },
+        -> { puts "#{val} is big" }
+end
+
+# 블록의 매개 변수 리스트
+proc1 = lambda do |a, *b, &block|
+  puts "a = #{a.inspect}"
+  puts "b = #{b.inspect}"
+  block.call
+end
+
+proc1.call(1, 2, 3, 4) { puts 'in block1' }
+
+proc2 = -> a, *b, &block do
+  puts "a = #{a.inspect}"
+  puts "b = #{b.inspect}"
+  block.call
+end
+
+proc2.call(1, 2, 3, 4) { puts 'in block2' }
